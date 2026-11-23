@@ -84,6 +84,12 @@ export const config = {
     clientId: clean(process.env.GOOGLE_CLIENT_ID),
     clientSecret: clean(process.env.GOOGLE_CLIENT_SECRET),
   },
+
+  // Admin panel (/admin). Disabled unless ADMIN_PASSWORD is set — the API
+  // answers 404 so the panel's existence is not advertised when unused.
+  admin: {
+    password: clean(process.env.ADMIN_PASSWORD),
+  },
 };
 
 /** Well-known public sandbox credentials. NOT secrets — used only in sandbox mode. */
