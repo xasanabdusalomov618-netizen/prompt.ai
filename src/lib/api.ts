@@ -75,6 +75,14 @@ export interface UsageInfo {
   generationsToday: number;
   limit: number | null;
   unlimited: boolean;
+  /** True while the account has no active subscription — 5 lifetime free generations. */
+  trial?: boolean;
+  trialLimit?: number;
+  trialUsed?: number;
+}
+
+export interface OauthConfig {
+  google: boolean;
 }
 export interface PaymentStatusInfo {
   sandbox: boolean;

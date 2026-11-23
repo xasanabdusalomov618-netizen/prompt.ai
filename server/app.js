@@ -14,6 +14,7 @@ import { initDb, db } from "./db.js";
 import { config, sandboxMode } from "./env.js";
 import { attachUser } from "./auth.js";
 import { authRouter } from "./routes/auth.js";
+import { googleRouter } from "./routes/google.js";
 import { billingRouter } from "./routes/billing.js";
 import { clickRouter } from "./routes/click.js";
 import { paymeRouter } from "./routes/payme.js";
@@ -65,6 +66,7 @@ export async function createApp() {
   });
 
   app.use("/api/auth", authRouter);
+  app.use("/api/auth", googleRouter);
   app.use("/api/billing", billingRouter);
   app.use("/api", clickRouter);
   app.use("/api", paymeRouter);

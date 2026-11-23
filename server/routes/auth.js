@@ -8,7 +8,7 @@ import {
   setSessionCookie, clearSessionCookie, readSessionCookie, resolveSession,
   requireAuth, requireClientHeader, resolveEffectivePlan,
 } from "../auth.js";
-import { PLANS } from "../plans.js";
+import { PLANS, TRIAL_GENERATION_LIMIT } from "../plans.js";
 
 export const authRouter = Router();
 
@@ -38,12 +38,35 @@ async function mePayload(userId) {
   const u = row.rows[0];
   if (!u) return null;
   const { plan, subscription } = await resolveEffectivePlan(userId);
+  const hasPaidSubscription = Boolean(
+    subscription && subscription.status === "active" && subscription.currentPeriodEnd > now(),
+  );
   const usage = await db.execute({
     sql: "SELECT count FROM usage_counters WHERE user_id=? AND day=?",
     args: [userId, new Date().toISOString().slice(0, 10)],
   });
   const generationsToday = Number(usage.rows[0]?.count ?? 0);
   const planDef = PLANS[plan] ?? PLANS.free;
+
+  if (!hasPaidSubscription) {
+    // Trial account — report lifetime trial consumption instead of daily quota.
+    const lifetime = await db.execute({ sql: "SELECT count FROM usage_lifetime WHERE user_id=?", args: [userId] });
+    const trialUsed = Number(lifetime.rows[0]?.count ?? 0);
+    return {
+      user: { ...publicUser(u), plan },
+      subscription,
+      usage: {
+        day: new Date().toISOString().slice(0, 10),
+        generationsToday,
+        limit: TRIAL_GENERATION_LIMIT,
+        unlimited: false,
+        trial: true,
+        trialLimit: TRIAL_GENERATION_LIMIT,
+        trialUsed,
+      },
+      paymentMode: publicStatus(),
+    };
+  }
   return {
     user: { ...publicUser(u), plan },
     subscription,
@@ -52,6 +75,7 @@ async function mePayload(userId) {
       generationsToday,
       limit: planDef.generationsPerDay === Infinity ? null : planDef.generationsPerDay,
       unlimited: planDef.generationsPerDay === Infinity,
+      trial: false,
     },
     paymentMode: publicStatus(),
   };

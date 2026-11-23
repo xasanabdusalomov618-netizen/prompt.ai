@@ -3,10 +3,11 @@ import { Sparkles, X, Check } from "lucide-react";
 import { useApp } from "./context";
 
 export function UpgradeModal() {
-  const { t, upgrade, closeUpgrade, plan } = useApp();
+  const { t, upgrade, closeUpgrade, plan, usage } = useApp();
   const navigate = useNavigate();
   if (!upgrade.open) return null;
   const isSaved = upgrade.reason === "saved";
+  const isTrial = usage?.trial === true;
   return (
     <div className="upgrade-overlay" role="dialog" aria-modal="true" aria-label={t("limitReachedTitle")}>
       <div className="upgrade-modal">
@@ -16,8 +17,8 @@ export function UpgradeModal() {
         <div className="upgrade-orb">
           <Sparkles size={26} strokeWidth={1.6} />
         </div>
-        <h3>{isSaved ? t("savedCapTitle") : t("limitReachedTitle")}</h3>
-        <p>{isSaved ? t("savedCapText") : t("limitReachedText")}</p>
+        <h3>{isSaved ? t("savedCapTitle") : isTrial ? t("trialExhaustedTitle") : t("limitReachedTitle")}</h3>
+        <p>{isSaved ? t("savedCapText") : isTrial ? t("trialExhaustedText") : t("limitReachedText")}</p>
         <ul className="upgrade-points">
           <li><Check size={14} />{t("feat_pro_2")}</li>
           <li><Check size={14} />{t("feat_pro_3")}</li>
