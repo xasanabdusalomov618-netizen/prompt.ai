@@ -59,6 +59,11 @@ Premium, choose Click or Payme:
 - **Generator**: trial-aware limits (unpaid accounts: 5 lifetime generations via `usage_lifetime`; paid plans: daily quota from the catalogue; anonymous: local 5/day counter), saved-prompt caps (trial 20, paid Free 100, Pro/Premium unlimited), tiered quality options with upgrade prompts.
 - Uzbek / English / Russian translations for everything new. Dark/light themes untouched.
 
+### Admin panel (`/admin`)
+- Disabled unless `ADMIN_PASSWORD` is set (the API answers 404 so the panel is not advertised).
+- Login (rate-limited, constant-time compare) issues an HttpOnly admin cookie valid 8 h; token rotates on restart.
+- Shows: registered users (total/today/month), revenue this month with Click/Payme split, active subscriptions by plan (incl. yearly $23), all-time revenue separated **live vs TEST**, finished unpaid trials, pending payments; user table with search (plan, status, usage, last payment), full payment history and the webhook audit log.
+
 ### Backend (`server/`, Express + libsql/SQLite)
 | File | Purpose |
 |---|---|
@@ -67,6 +72,7 @@ Premium, choose Click or Payme:
 | `plans.js` | Server-authoritative catalogue & prices (so'm) — client never sets amounts |
 | `auth.js` | scrypt password hashing, httpOnly session cookies (SHA-256 at rest), lazy plan expiry |
 | `routes/auth.js` | register / login / logout / me (rate-limited) |
+| `routes/admin.js` | Admin panel API: password login, stats aggregates, users/payments/webhook log (disabled without `ADMIN_PASSWORD`) |
 | `routes/google.js` | "Continue with Google" OAuth 2.0 code flow + `/api/auth/oauth-config` capability probe |
 | `routes/billing.js` | plans, checkout creation, payment status/history, subscription cancel/resume, usage metering |
 | `routes/click.js` | **Click SHOP-API** Prepare/Complete with MD5 `sign_string` verification, idempotent replay, official error codes |

@@ -53,6 +53,7 @@ import Checkout from "./pages/Checkout";
 import SandboxCheckout from "./pages/SandboxCheckout";
 import PaymentReturn from "./pages/PaymentReturn";
 import Dashboard from "./pages/Dashboard";
+import Admin from "./pages/Admin";
 import AuthPage from "./pages/AuthPage";
 import { UpgradeModal } from "./UpgradeModal";
 import {
@@ -936,6 +937,7 @@ export default function App() {
           <Route path="/payment/sandbox" element={<SandboxCheckout />} />
           <Route path="/payment/return" element={<PaymentReturn />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/admin" element={<Admin />} />
           <Route path="/login" element={<AuthPage mode="login" />} />
           <Route path="/signup" element={<AuthPage mode="signup" />} />
           <Route path="*" element={<Library />} />

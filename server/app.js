@@ -19,6 +19,7 @@ import { billingRouter } from "./routes/billing.js";
 import { clickRouter } from "./routes/click.js";
 import { paymeRouter } from "./routes/payme.js";
 import { sandboxRouter } from "./routes/sandbox.js";
+import { adminRouter } from "./routes/admin.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIST = path.resolve(__dirname, "..", "dist");
@@ -72,6 +73,8 @@ export async function createApp() {
   app.use("/api", paymeRouter);
   // Sandbox harness — real verification code path, TEST-labelled, 404 in live mode.
   app.use("/api/sandbox", sandboxRouter);
+  // Admin panel — 404 unless ADMIN_PASSWORD is set.
+  app.use("/api/admin", adminRouter);
 
   app.use("/api", (_req, res) => res.status(404).json({ error: "not_found", message: "Unknown API endpoint." }));
 
