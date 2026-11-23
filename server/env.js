@@ -76,6 +76,14 @@ export const config = {
     testCheckoutBase:
       clean(process.env.PAYME_TEST_CHECKOUT_BASE) || "https://test.paycom.uz",
   },
+
+  // Google OAuth 2.0 (Sign in / Sign up with Google).
+  // Create a Web application OAuth client at https://console.cloud.google.com
+  // and register redirect URI:  ${APP_URL}/api/auth/google/callback
+  google: {
+    clientId: clean(process.env.GOOGLE_CLIENT_ID),
+    clientSecret: clean(process.env.GOOGLE_CLIENT_SECRET),
+  },
 };
 
 /** Well-known public sandbox credentials. NOT secrets — used only in sandbox mode. */
@@ -86,6 +94,9 @@ export const SANDBOX = {
 
 export const clickConfigured = () =>
   Boolean(config.click.serviceId && config.click.merchantId && config.click.secretKey);
+
+export const googleConfigured = () =>
+  Boolean(config.google.clientId && config.google.clientSecret);
 
 export const paymeConfigured = () =>
   Boolean(config.payme.merchantId && (config.payme.key || config.payme.testKey));
@@ -142,6 +153,7 @@ export function publicStatus() {
     sandbox: sandboxMode(),
     clickConfigured: clickConfigured(),
     paymeConfigured: paymeConfigured(),
+    googleConfigured: googleConfigured(),
     paymeTestMode: config.payme.testMode,
     currency: "UZS",
     ephemeralDb: config.db.ephemeral,

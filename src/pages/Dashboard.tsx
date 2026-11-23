@@ -220,10 +220,17 @@ export default function Dashboard() {
         <aside className="dash-stats">
           <div className="stat-card">
             <Sparkles size={17} />
-            <span className="stat-label">{t("generationsLeft")}</span>
+            <span className="stat-label">
+              {usage?.trial ? t("trialStatLabel") : t("generationsLeft")}
+            </span>
             <strong>
-              {usage?.unlimited ? t("unlimited") : Math.max(0, (usage?.limit ?? 10) - (usage?.generationsToday ?? 0))}
+              {usage?.unlimited
+                ? t("unlimited")
+                : usage?.trial
+                  ? Math.max(0, (usage.trialLimit ?? 5) - (usage.trialUsed ?? 0))
+                  : Math.max(0, (usage?.limit ?? 100) - (usage?.generationsToday ?? 0))}
             </strong>
+            {usage?.trial && <small className="stat-hint">{t("trialStatHint")}</small>}
           </div>
           <div className="stat-card">
             <CalendarClock size={17} />

@@ -6,7 +6,7 @@ A premium, responsive AI **prompt** generator and discovery site, upgraded with 
 - **Click** (https://click.uz) — web checkout + signed SHOP-API server callbacks
 - **Payme** (https://payme.uz) — web checkout + JSON-RPC 2.0 Merchant API endpoint
 
-Three plans: **Free** (basic generation), **Pro** (200 generations/day, Ultra HD),
+Three plans: **Free** (25 000 so'm/mo — or yearly 292 000 so'm; 100 generations/day, 100 saves), **Pro** (38 000 so'm/mo, 200 generations/day, Ultra HD),
 **Premium** (unlimited everything). Payments activate subscriptions **only after a
 cryptographically verified provider callback** — never on button clicks, never with
 card data touching our servers.
@@ -51,20 +51,23 @@ Premium, choose Click or Payme:
 ### Frontend (existing site, design preserved)
 - New routes: `/pricing` `/checkout` `/payment/sandbox` `/payment/return` `/dashboard` `/login` `/signup`
 - Navbar: **Pricing** link + account button (avatar, plan dot). Footer: pricing/account links + payment security strip.
-- **Pricing**: monthly/yearly toggle (yearly ≈ 20% off), Free/Pro/Premium cards with live prices, sandbox banner, trust strip.
+- **Pricing**: Free 25 000 so'm/mo (or **292 000 so'm/yr ≈ $23** — yearly billing is offered on the Free plan only), Pro 38 000 so'm/mo, Premium 63 000 so'm/mo. Cards show live server prices, sandbox banner, trust strip.
+- **Google sign-in / sign-up**: "Continue with Google" on `/login` & `/signup` when `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` are set (OAuth 2.0 authorization-code flow, state-cookie CSRF protection, email-verified check, automatic account linking by verified email). Without credentials the button is hidden — never a fake OAuth.
+- **5-generation trial**: every account gets 5 lifetime free generations; after that the paywall ("Free trial finished") points to `/pricing`. Subscribing to ANY plan (Free $2-equivalent and up) unlocks the plan's daily quota (Free 100/day, Pro 200/day, Premium unlimited).
 - **Checkout**: order summary, Click/Payme provider selection, secure-redirect note, auth guard, error handling.
 - **Dashboard**: current plan, status, expiry date with days-left progress bar, renew/upgrade/cancel-resume, usage meter, **payment history** with receipt modal (invoice id, provider transaction id), member-since and totals. Fully responsive (table → cards on mobile).
-- **Generator**: plan-aware daily generation limits (anonymous = local counter, signed-in = server counter), Free/Save cap (20), tiered quality options (High detail → Ultra HD → Premium editorial) with upgrade prompts.
+- **Generator**: trial-aware limits (unpaid accounts: 5 lifetime generations via `usage_lifetime`; paid plans: daily quota from the catalogue; anonymous: local 5/day counter), saved-prompt caps (trial 20, paid Free 100, Pro/Premium unlimited), tiered quality options with upgrade prompts.
 - Uzbek / English / Russian translations for everything new. Dark/light themes untouched.
 
 ### Backend (`server/`, Express + libsql/SQLite)
 | File | Purpose |
 |---|---|
 | `env.js` | All config & secrets, sandbox auto-detection |
-| `db.js` | Schema: `users`, `sessions`, `subscriptions`, `payments`, `payme_transactions`, `webhook_events`, `usage_counters` |
+| `db.js` | Schema: `users`, `sessions`, `subscriptions`, `payments`, `payme_transactions`, `webhook_events`, `usage_counters`, `usage_lifetime` + automatic migrations for legacy databases (rebuilds CHECK constraints, adds `users.google_sub`) |
 | `plans.js` | Server-authoritative catalogue & prices (so'm) — client never sets amounts |
 | `auth.js` | scrypt password hashing, httpOnly session cookies (SHA-256 at rest), lazy plan expiry |
 | `routes/auth.js` | register / login / logout / me (rate-limited) |
+| `routes/google.js` | "Continue with Google" OAuth 2.0 code flow + `/api/auth/oauth-config` capability probe |
 | `routes/billing.js` | plans, checkout creation, payment status/history, subscription cancel/resume, usage metering |
 | `routes/click.js` | **Click SHOP-API** Prepare/Complete with MD5 `sign_string` verification, idempotent replay, official error codes |
 | `routes/payme.js` | **Payme Merchant API** JSON-RPC: CheckPerformTransaction, CreateTransaction, PerformTransaction, CancelTransaction, CheckTransaction, GetStatement — HTTP Basic auth, tiyin amounts, 12 h timeout, full idempotency |
@@ -100,6 +103,9 @@ CLICK_SERVICE_ID= CLICK_MERCHANT_ID= CLICK_SECRET_KEY=   # Merchant cabinet → 
 PAYME_MERCHANT_ID= PAYME_MERCHANT_KEY=                   # Касса → Настройки
 # PAYME_TEST_MODE=true + PAYME_TEST_KEY=… for admin.test.paycom.uz cashier
 # PAYMENT_SANDBOX=true to force sandbox even with keys present
+GOOGLE_CLIENT_ID= GOOGLE_CLIENT_SECRET=                  # optional — enables "Continue with Google"
+# Google redirect URI to register in the OAuth client:
+#   https://your-domain/api/auth/google/callback
 ```
 
 ### Going live — Click

@@ -21,23 +21,27 @@ import {
 } from "../lib/api";
 
 const PLAN_META = {
-  pro: { icon: <Zap size={18} />, nameKey: "planPro" as const, monthly: 49000, yearly: 470000 },
-  premium: { icon: <Crown size={18} />, nameKey: "planPremium" as const, monthly: 99000, yearly: 950000 },
+  free: { icon: <Leaf size={18} />, nameKey: "planFree" as const, monthly: 25000, yearly: 292000 as number | null },
+  pro: { icon: <Zap size={18} />, nameKey: "planPro" as const, monthly: 38000, yearly: null },
+  premium: { icon: <Crown size={18} />, nameKey: "planPremium" as const, monthly: 63000, yearly: null },
 };
 
 export default function Checkout() {
   const { t, user, plan: currentPlan, subscription, paymentMode, refreshAuth } = useApp();
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
-  const planParam = params.get("plan") === "premium" ? "premium" : "pro";
+  const planParamRaw = params.get("plan");
+  const planParam = planParamRaw === "premium" || planParamRaw === "free" ? planParamRaw : "pro";
   const billing = params.get("billing") === "yearly" ? "yearly" : "monthly";
   const [provider, setProvider] = useState<PaymentProvider>("click");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const meta = PLAN_META[planParam];
-  const amount = billing === "monthly" ? meta.monthly : meta.yearly;
-  const yearlySaving = meta.monthly * 12 - meta.yearly;
+  const yearlyAllowed = meta.yearly != null;
+  const effectiveBilling = billing === "yearly" && yearlyAllowed ? "yearly" : "monthly";
+  const amount = effectiveBilling === "monthly" ? meta.monthly : (meta.yearly as number);
+  const yearlySaving = meta.yearly != null ? meta.monthly * 12 - meta.yearly : 0;
   const sandbox = paymentMode?.sandbox ?? false;
   const clickAvailable = sandbox || Boolean(paymentMode?.clickConfigured);
   const paymeAvailable = sandbox || Boolean(paymentMode?.paymeConfigured);
@@ -58,7 +62,7 @@ export default function Checkout() {
     try {
       const res = await api.post<CheckoutResponse>("/api/billing/checkout", {
         plan: planParam,
-        billing,
+        billing: effectiveBilling,
         provider,
       });
       await refreshAuth();
@@ -77,7 +81,7 @@ export default function Checkout() {
       </Link>
       <div className="checkout-head">
         <span className="eyebrow">{t("checkout").toUpperCase()}</span>
-        <h1>{t("orderSummary")}</h1>
+        <h1>{planParam === "free" ? t("choosePlanHeader") : t("orderSummary")}</h1>
       </div>
 
       {sandbox && (
@@ -98,7 +102,7 @@ export default function Checkout() {
           <button
             className="btn btn-primary"
             onClick={() =>
-              navigate(`/login?next=${encodeURIComponent(`/checkout?plan=${planParam}&billing=${billing}`)}`)
+              navigate(`/login?next=${encodeURIComponent(`/checkout?plan=${planParam}&billing=${effectiveBilling}`)}`)
             }
           >
             {t("signIn")}
@@ -117,21 +121,26 @@ export default function Checkout() {
             </div>
 
             <div className="billing-toggle small" role="tablist" aria-label={t("billingLabel")}>
-              <button role="tab" aria-selected={billing === "monthly"} className={billing === "monthly" ? "active" : ""} onClick={() => setParams({ plan: planParam, billing: "monthly" })}>
+              <button role="tab" aria-selected={effectiveBilling === "monthly"} className={effectiveBilling === "monthly" ? "active" : ""} onClick={() => setParams({ plan: planParam, billing: "monthly" })}>
                 {t("monthly")}
               </button>
-              <button role="tab" aria-selected={billing === "yearly"} className={billing === "yearly" ? "active" : ""} onClick={() => setParams({ plan: planParam, billing: "yearly" })}>
-                {t("yearly")}
-                <em>{t("yearlySave")}</em>
-              </button>
+              {yearlyAllowed && (
+                <button role="tab" aria-selected={effectiveBilling === "yearly"} className={effectiveBilling === "yearly" ? "active" : ""} onClick={() => setParams({ plan: planParam, billing: "yearly" })}>
+                  {t("yearly")}
+                  <em>{t("yearlySave")}</em>
+                </button>
+              )}
             </div>
+            {!yearlyAllowed && billing === "yearly" && (
+              <p className="summary-note muted">{t("yearlyOnlyNote")}</p>
+            )}
 
             <dl className="summary-rows">
               <div className="summary-row">
                 <dt>{t("planLabel")}</dt>
-                <dd>{planName} — {billing === "monthly" ? t("monthly") : t("yearly")}</dd>
+                <dd>{planName} — {effectiveBilling === "monthly" ? t("monthly") : t("yearly")}</dd>
               </div>
-              {billing === "yearly" && (
+              {effectiveBilling === "yearly" && yearlySaving > 0 && (
                 <div className="summary-row saving">
                   <dt>{t("yearlySave")}</dt>
                   <dd>−{formatSom(yearlySaving)}</dd>
@@ -141,7 +150,7 @@ export default function Checkout() {
                 <dt>{t("total")}</dt>
                 <dd>
                   {formatSom(amount)}
-                  <span className="summary-period">{billing === "monthly" ? t("perMonth") : t("perYear")}</span>
+                  <span className="summary-period">{effectiveBilling === "monthly" ? t("perMonth") : t("perYear")}</span>
                 </dd>
               </div>
             </dl>

@@ -12,6 +12,7 @@ import {
   ApiError,
   anonUsage,
   type MeResponse,
+  type OauthConfig,
   type PaymentStatusInfo,
   type PlanId,
   type SessionUser,
@@ -58,6 +59,7 @@ interface AppState {
   plan: PlanId;
   usage: UsageInfo | null;
   paymentMode: PaymentStatusInfo | null;
+  oauth: OauthConfig | null;
   authReady: boolean;
   refreshAuth: () => Promise<void>;
   logout: () => Promise<void>;
@@ -94,6 +96,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
   const [usage, setUsage] = useState<UsageInfo | null>(null);
   const [paymentMode, setPaymentMode] = useState<PaymentStatusInfo | null>(null);
+  const [oauth, setOauth] = useState<OauthConfig | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [upgrade, setUpgrade] = useState<UpgradeState>({ open: false });
   const plan: PlanId = (user?.plan ?? "free") as PlanId;
@@ -125,6 +128,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
   useEffect(() => {
     refreshAuth();
+    api
+      .get<OauthConfig>("/api/auth/oauth-config")
+      .then(setOauth)
+      .catch(() => setOauth({ google: false }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const logout = async () => {
@@ -140,7 +147,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const trackGeneration = async (): Promise<boolean> => {
     // Anonymous users: local daily counter, same free limit.
     if (!user) {
-      if (anonUsage.read() >= 10) {
+      if (anonUsage.read() >= 5) {
         openUpgrade("limit");
         return false;
       }
@@ -165,7 +172,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return true;
     } catch (e) {
       // Fail-open on network errors for authed users but keep a local cap for free.
-      if (plan === "free" && anonUsage.bump() > 10) {
+      if (plan === "free" && anonUsage.bump() > 5) {
         openUpgrade("limit");
         return false;
       }
@@ -231,7 +238,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         toggleFavorite,
         saved,
         savePrompt: (p) => {
-          const cap = plan === "free" ? 20 : Infinity;
+          const isPaidFree = plan === "free" && subscription?.status === "active";
+          const cap = plan === "free" ? (isPaidFree ? 100 : 20) : Infinity;
           if (saved.length >= cap) {
             openUpgrade("saved");
             return;
@@ -255,6 +263,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         plan,
         usage,
         paymentMode,
+        oauth,
         authReady,
         refreshAuth,
         logout,

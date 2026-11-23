@@ -1,11 +1,12 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { Sparkles, Loader2, AlertCircle, Mail, Lock, User } from "lucide-react";
+import { GoogleIcon } from "./GoogleIcon";
 import { useApp } from "../context";
 import { api, ApiError, type MeResponse } from "../lib/api";
 
 export default function AuthPage({ mode }: { mode: "login" | "signup" }) {
-  const { t, user, refreshAuth, notify } = useApp();
+  const { t, user, refreshAuth, notify, oauth } = useApp();
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const next = params.get("next") || "/dashboard";
@@ -15,6 +16,20 @@ export default function AuthPage({ mode }: { mode: "login" | "signup" }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isLogin = mode === "login";
+
+  // OAuth error reporting comes back as /login?error=<code>
+  const oauthError = params.get("error");
+  useEffect(() => {
+    if (!oauthError) return;
+    setError(
+      oauthError === "google_unavailable" ? t("googleUnavailable")
+      : oauthError === "oauth_state" ? t("oauthState")
+      : oauthError === "google_email" ? t("googleEmailBlocked")
+      : oauthError === "oauth_denied" ? t("googleDenied")
+      : t("googleError"),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [oauthError]);
 
   useEffect(() => {
     if (user) navigate(next.startsWith("/") ? next : "/dashboard", { replace: true });
@@ -128,6 +143,21 @@ export default function AuthPage({ mode }: { mode: "login" | "signup" }) {
             {busy && <Loader2 size={17} className="spin" />}
             {isLogin ? t("signIn") : t("createAccount")}
           </button>
+
+          {oauth?.google && (
+            <>
+              <div className="auth-divider" role="separator">
+                <span>{t("orDivider")}</span>
+              </div>
+              <a
+                className="btn btn-secondary auth-google-btn"
+                href={`/api/auth/google?next=${encodeURIComponent(next)}`}
+              >
+                <GoogleIcon size={17} />
+                {t("continueWithGoogle")}
+              </a>
+            </>
+          )}
 
           <p className="auth-switch">
             {isLogin ? t("noAccount") : t("haveAccount")}{" "}
